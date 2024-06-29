@@ -1,9 +1,10 @@
-<div th:fragment="footer">	
-	<footer id="footer" class="text-center py-3">
-        <a href="https://github.com/Frooodle/Stirling-PDF" target="_blank" class="mx-1" title="Visit Github Repository"><img src="images/github.svg"></img></a>
-		<a href="https://hub.docker.com/r/frooodle/s-pdf" target="_blank" class="mx-1" title="See Docker Hub"><img src="images/docker.svg"></img></a>
-		<a href="https://discord.gg/Cn8pWhQRxZ" target="_blank" class="mx-1" title="Join Discord Channel"><img src="images/discord.svg"></img></a>
-		<a href="https://github.com/sponsors/Frooodle" target="_blank" class="mx-1" title="Donate"><img src="images/suit-heart-fill.svg"></img></a>
-        <div th:if="${@appName} != 'Stirling PDF'" class="mt-2" style="color: grey;">Powered by Stirling PDF</div>
-    </footer>
-</div>
+<footer th:fragment="footer" id="footer" class="text-center py-5">
+  <div class="footer-center">
+    <div class="footer-powered-by">
+      <span th:text="#{poweredBy} + ' Stirling PDF'"></span>
+    </div>
+    <a th:href="@{'/licenses'}" id="licenses" target="_blank" class="mx-1" title="" th:text="#{licenses.nav}">Licenses</a>
+    <a href="https://stirlingpdf.info/s/clwzgtfw7000gltkmwz1n212m" id="survey" target="_blank" class="mx-1" title="" th:text="#{survey.nav}">Survey</a>
+  </div>
+</footer>
+

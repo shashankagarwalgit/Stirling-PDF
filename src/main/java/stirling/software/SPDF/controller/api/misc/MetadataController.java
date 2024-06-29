@@ -7,9 +7,12 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,8 +20,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.github.pixee.security.Filenames;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import stirling.software.SPDF.model.api.misc.MetadataRequest;
 import stirling.software.SPDF.utils.WebResponseUtils;
 
@@ -27,6 +32,7 @@ import stirling.software.SPDF.utils.WebResponseUtils;
 @Tag(name = "Misc", description = "Miscellaneous APIs")
 public class MetadataController {
 
+    private static final Logger logger = LoggerFactory.getLogger(MetadataController.class);
 
     private String checkUndefined(String entry) {
         // Check if the string is "undefined"
@@ -36,14 +42,16 @@ public class MetadataController {
         }
         // Return the original string if it's not "undefined"
         return entry;
-
     }
 
     @PostMapping(consumes = "multipart/form-data", value = "/update-metadata")
-    @Operation(summary = "Update metadata of a PDF file",
-            description = "This endpoint allows you to update the metadata of a given PDF file. You can add, modify, or delete standard and custom metadata fields. Input:PDF Output:PDF Type:SISO")
-    public ResponseEntity<byte[]> metadata(@ModelAttribute MetadataRequest request) throws IOException {
-        
+    @Operation(
+            summary = "Update metadata of a PDF file",
+            description =
+                    "This endpoint allows you to update the metadata of a given PDF file. You can add, modify, or delete standard and custom metadata fields. Input:PDF Output:PDF Type:SISO")
+    public ResponseEntity<byte[]> metadata(@ModelAttribute MetadataRequest request)
+            throws IOException {
+
         // Extract PDF file from the request object
         MultipartFile pdfFile = request.getFileInput();
 
@@ -61,11 +69,11 @@ public class MetadataController {
 
         // Extract additional custom parameters
         Map<String, String> allRequestParams = request.getAllRequestParams();
-        if(allRequestParams == null) {
-        	allRequestParams = new java.util.HashMap<String, String>();
+        if (allRequestParams == null) {
+            allRequestParams = new java.util.HashMap<String, String>();
         }
         // Load the PDF file into a PDDocument
-        PDDocument document = PDDocument.load(pdfFile.getBytes());
+        PDDocument document = Loader.loadPDF(pdfFile.getBytes());
 
         // Get the document information from the PDF
         PDDocumentInformation info = document.getDocumentInformation();
@@ -89,7 +97,9 @@ public class MetadataController {
             }
             // Remove metadata from the PDF history
             document.getDocumentCatalog().getCOSObject().removeItem(COSName.getPDFName("Metadata"));
-            document.getDocumentCatalog().getCOSObject().removeItem(COSName.getPDFName("PieceInfo"));
+            document.getDocumentCatalog()
+                    .getCOSObject()
+                    .removeItem(COSName.getPDFName("PieceInfo"));
             author = null;
             creationDate = null;
             creator = null;
@@ -104,9 +114,17 @@ public class MetadataController {
             for (Entry<String, String> entry : allRequestParams.entrySet()) {
                 String key = entry.getKey();
                 // Check if the key is a standard metadata key
-                if (!key.equalsIgnoreCase("Author") && !key.equalsIgnoreCase("CreationDate") && !key.equalsIgnoreCase("Creator") && !key.equalsIgnoreCase("Keywords")
-                        && !key.equalsIgnoreCase("modificationDate") && !key.equalsIgnoreCase("Producer") && !key.equalsIgnoreCase("Subject") && !key.equalsIgnoreCase("Title")
-                        && !key.equalsIgnoreCase("Trapped") && !key.contains("customKey") && !key.contains("customValue")) {
+                if (!"Author".equalsIgnoreCase(key)
+                        && !"CreationDate".equalsIgnoreCase(key)
+                        && !"Creator".equalsIgnoreCase(key)
+                        && !"Keywords".equalsIgnoreCase(key)
+                        && !"modificationDate".equalsIgnoreCase(key)
+                        && !"Producer".equalsIgnoreCase(key)
+                        && !"Subject".equalsIgnoreCase(key)
+                        && !"Title".equalsIgnoreCase(key)
+                        && !"Trapped".equalsIgnoreCase(key)
+                        && !key.contains("customKey")
+                        && !key.contains("customValue")) {
                     info.setCustomMetadataValue(key, entry.getValue());
                 } else if (key.contains("customKey")) {
                     int number = Integer.parseInt(key.replaceAll("\\D", ""));
@@ -119,9 +137,10 @@ public class MetadataController {
         if (creationDate != null && creationDate.length() > 0) {
             Calendar creationDateCal = Calendar.getInstance();
             try {
-                creationDateCal.setTime(new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(creationDate));
+                creationDateCal.setTime(
+                        new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(creationDate));
             } catch (ParseException e) {
-                e.printStackTrace();
+                logger.error("exception", e);
             }
             info.setCreationDate(creationDateCal);
         } else {
@@ -130,9 +149,10 @@ public class MetadataController {
         if (modificationDate != null && modificationDate.length() > 0) {
             Calendar modificationDateCal = Calendar.getInstance();
             try {
-                modificationDateCal.setTime(new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(modificationDate));
+                modificationDateCal.setTime(
+                        new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(modificationDate));
             } catch (ParseException e) {
-                e.printStackTrace();
+                logger.error("exception", e);
             }
             info.setModificationDate(modificationDateCal);
         } else {
@@ -147,7 +167,10 @@ public class MetadataController {
         info.setTrapped(trapped);
 
         document.setDocumentInformation(info);
-        return WebResponseUtils.pdfDocToWebResponse(document, pdfFile.getOriginalFilename().replaceFirst("[.][^.]+$", "") + "_metadata.pdf");
+        return WebResponseUtils.pdfDocToWebResponse(
+                document,
+                Filenames.toSimpleFileName(pdfFile.getOriginalFilename())
+                                .replaceFirst("[.][^.]+$", "")
+                        + "_metadata.pdf");
     }
-
 }

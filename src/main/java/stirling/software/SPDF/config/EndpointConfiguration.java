@@ -9,10 +9,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import stirling.software.SPDF.model.ApplicationProperties;
+
 @Service
+@DependsOn({"bookAndHtmlFormatsInstalled"})
 public class EndpointConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(EndpointConfiguration.class);
     private Map<String, Boolean> endpointStatuses = new ConcurrentHashMap<>();
@@ -20,22 +24,27 @@ public class EndpointConfiguration {
 
     private final ApplicationProperties applicationProperties;
 
+    private boolean bookAndHtmlFormatsInstalled;
+
     @Autowired
-    public EndpointConfiguration(ApplicationProperties applicationProperties) {
+    public EndpointConfiguration(
+            ApplicationProperties applicationProperties,
+            @Qualifier("bookAndHtmlFormatsInstalled") boolean bookAndHtmlFormatsInstalled) {
         this.applicationProperties = applicationProperties;
+        this.bookAndHtmlFormatsInstalled = bookAndHtmlFormatsInstalled;
         init();
         processEnvironmentConfigs();
     }
-    
+
     public void enableEndpoint(String endpoint) {
-    	endpointStatuses.put(endpoint, true);
+        endpointStatuses.put(endpoint, true);
     }
 
     public void disableEndpoint(String endpoint) {
-    	if(!endpointStatuses.containsKey(endpoint) || endpointStatuses.get(endpoint) !=  false) {
-	        logger.info("Disabling {}", endpoint);
-	        endpointStatuses.put(endpoint, false);
-    	}
+        if (!endpointStatuses.containsKey(endpoint) || endpointStatuses.get(endpoint) != false) {
+            logger.info("Disabling {}", endpoint);
+            endpointStatuses.put(endpoint, false);
+        }
     }
 
     public boolean isEndpointEnabled(String endpoint) {
@@ -66,7 +75,7 @@ public class EndpointConfiguration {
             }
         }
     }
-    
+
     public void init() {
         // Adding endpoints to "PageOps" group
         addEndpointToGroup("PageOps", "remove-pages");
@@ -84,8 +93,7 @@ public class EndpointConfiguration {
         addEndpointToGroup("PageOps", "split-by-size-or-count");
         addEndpointToGroup("PageOps", "overlay-pdf");
         addEndpointToGroup("PageOps", "split-pdf-by-sections");
-        
-        
+
         // Adding endpoints to "Convert" group
         addEndpointToGroup("Convert", "pdf-to-img");
         addEndpointToGroup("Convert", "img-to-pdf");
@@ -101,18 +109,17 @@ public class EndpointConfiguration {
         addEndpointToGroup("Convert", "url-to-pdf");
         addEndpointToGroup("Convert", "markdown-to-pdf");
         addEndpointToGroup("Convert", "pdf-to-csv");
-        
-        
+
         // Adding endpoints to "Security" group
         addEndpointToGroup("Security", "add-password");
         addEndpointToGroup("Security", "remove-password");
         addEndpointToGroup("Security", "change-permissions");
         addEndpointToGroup("Security", "add-watermark");
         addEndpointToGroup("Security", "cert-sign");
+        addEndpointToGroup("Security", "remove-cert-sign");
         addEndpointToGroup("Security", "sanitize-pdf");
         addEndpointToGroup("Security", "auto-redact");
-        
-        
+
         // Adding endpoints to "Other" group
         addEndpointToGroup("Other", "ocr-pdf");
         addEndpointToGroup("Other", "add-image");
@@ -123,61 +130,62 @@ public class EndpointConfiguration {
         addEndpointToGroup("Other", "sign");
         addEndpointToGroup("Other", "flatten");
         addEndpointToGroup("Other", "repair");
-        addEndpointToGroup("Other", "remove-blanks");
+        addEndpointToGroup("Other", REMOVE_BLANKS);
         addEndpointToGroup("Other", "remove-annotations");
         addEndpointToGroup("Other", "compare");
         addEndpointToGroup("Other", "add-page-numbers");
         addEndpointToGroup("Other", "auto-rename");
         addEndpointToGroup("Other", "get-info-on-pdf");
         addEndpointToGroup("Other", "show-javascript");
-        
-        
-        
-        //CLI
+
+        // CLI
         addEndpointToGroup("CLI", "compress-pdf");
         addEndpointToGroup("CLI", "extract-image-scans");
-        addEndpointToGroup("CLI", "remove-blanks");
         addEndpointToGroup("CLI", "repair");
         addEndpointToGroup("CLI", "pdf-to-pdfa");
         addEndpointToGroup("CLI", "file-to-pdf");
         addEndpointToGroup("CLI", "xlsx-to-pdf");
         addEndpointToGroup("CLI", "pdf-to-word");
         addEndpointToGroup("CLI", "pdf-to-presentation");
-        addEndpointToGroup("CLI", "pdf-to-text");
         addEndpointToGroup("CLI", "pdf-to-html");
         addEndpointToGroup("CLI", "pdf-to-xml");
         addEndpointToGroup("CLI", "ocr-pdf");
         addEndpointToGroup("CLI", "html-to-pdf");
         addEndpointToGroup("CLI", "url-to-pdf");
-        
-        
-        //python
+        addEndpointToGroup("CLI", "book-to-pdf");
+        addEndpointToGroup("CLI", "pdf-to-book");
+        addEndpointToGroup("CLI", "pdf-to-rtf");
+
+        // Calibre
+        addEndpointToGroup("Calibre", "book-to-pdf");
+        addEndpointToGroup("Calibre", "pdf-to-book");
+
+        // python
         addEndpointToGroup("Python", "extract-image-scans");
-        addEndpointToGroup("Python", "remove-blanks");
+        addEndpointToGroup("Python", REMOVE_BLANKS);
         addEndpointToGroup("Python", "html-to-pdf");
         addEndpointToGroup("Python", "url-to-pdf");
-        
-        //openCV
-        addEndpointToGroup("OpenCV", "extract-image-scans");
-        addEndpointToGroup("OpenCV", "remove-blanks");
 
-        //LibreOffice
+        // openCV
+        addEndpointToGroup("OpenCV", "extract-image-scans");
+        addEndpointToGroup("OpenCV", REMOVE_BLANKS);
+
+        // LibreOffice
         addEndpointToGroup("LibreOffice", "repair");
         addEndpointToGroup("LibreOffice", "file-to-pdf");
         addEndpointToGroup("LibreOffice", "xlsx-to-pdf");
         addEndpointToGroup("LibreOffice", "pdf-to-word");
         addEndpointToGroup("LibreOffice", "pdf-to-presentation");
-        addEndpointToGroup("LibreOffice", "pdf-to-text");
+        addEndpointToGroup("LibreOffice", "pdf-to-rtf");
         addEndpointToGroup("LibreOffice", "pdf-to-html");
         addEndpointToGroup("LibreOffice", "pdf-to-xml");
-        
-        
-        //OCRmyPDF
+
+        // OCRmyPDF
         addEndpointToGroup("OCRmyPDF", "compress-pdf");
         addEndpointToGroup("OCRmyPDF", "pdf-to-pdfa");
         addEndpointToGroup("OCRmyPDF", "ocr-pdf");
-        
-        //Java
+
+        // Java
         addEndpointToGroup("Java", "merge-pdfs");
         addEndpointToGroup("Java", "remove-pages");
         addEndpointToGroup("Java", "split-pdfs");
@@ -193,6 +201,7 @@ public class EndpointConfiguration {
         addEndpointToGroup("Java", "extract-images");
         addEndpointToGroup("Java", "change-metadata");
         addEndpointToGroup("Java", "cert-sign");
+        addEndpointToGroup("Java", "remove-cert-sign");
         addEndpointToGroup("Java", "multi-page-layout");
         addEndpointToGroup("Java", "scale-pages");
         addEndpointToGroup("Java", "add-page-numbers");
@@ -210,20 +219,22 @@ public class EndpointConfiguration {
         addEndpointToGroup("Java", "split-by-size-or-count");
         addEndpointToGroup("Java", "overlay-pdf");
         addEndpointToGroup("Java", "split-pdf-by-sections");
-        
-        //Javascript
+        addEndpointToGroup("Java", REMOVE_BLANKS);
+        addEndpointToGroup("Java", "pdf-to-text");
+
+        // Javascript
         addEndpointToGroup("Javascript", "pdf-organizer");
         addEndpointToGroup("Javascript", "sign");
         addEndpointToGroup("Javascript", "compare");
         addEndpointToGroup("Javascript", "adjust-contrast");
-        
-        
     }
-    
+
     private void processEnvironmentConfigs() {
         List<String> endpointsToRemove = applicationProperties.getEndpoints().getToRemove();
         List<String> groupsToRemove = applicationProperties.getEndpoints().getGroupsToRemove();
-
+        if (!bookAndHtmlFormatsInstalled) {
+            groupsToRemove.add("Calibre");
+        }
         if (endpointsToRemove != null) {
             for (String endpoint : endpointsToRemove) {
                 disableEndpoint(endpoint.trim());
@@ -237,5 +248,5 @@ public class EndpointConfiguration {
         }
     }
 
+    private static final String REMOVE_BLANKS = "remove-blanks";
 }
-

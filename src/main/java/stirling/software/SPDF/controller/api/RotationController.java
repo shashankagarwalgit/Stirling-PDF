@@ -2,6 +2,7 @@ package stirling.software.SPDF.controller.api;
 
 import java.io.IOException;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageTree;
@@ -14,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.github.pixee.security.Filenames;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import stirling.software.SPDF.model.api.general.RotatePDFRequest;
 import stirling.software.SPDF.utils.WebResponseUtils;
 
@@ -28,15 +31,15 @@ public class RotationController {
 
     @PostMapping(consumes = "multipart/form-data", value = "/rotate-pdf")
     @Operation(
-        summary = "Rotate a PDF file",
-        description = "This endpoint rotates a given PDF file by a specified angle. The angle must be a multiple of 90. Input:PDF Output:PDF Type:SISO"
-    )
-    public ResponseEntity<byte[]> rotatePDF(
-    		@ModelAttribute RotatePDFRequest request) throws IOException {
+            summary = "Rotate a PDF file",
+            description =
+                    "This endpoint rotates a given PDF file by a specified angle. The angle must be a multiple of 90. Input:PDF Output:PDF Type:SISO")
+    public ResponseEntity<byte[]> rotatePDF(@ModelAttribute RotatePDFRequest request)
+            throws IOException {
         MultipartFile pdfFile = request.getFileInput();
         Integer angle = request.getAngle();
         // Load the PDF document
-        PDDocument document = PDDocument.load(pdfFile.getBytes());
+        PDDocument document = Loader.loadPDF(pdfFile.getBytes());
 
         // Get the list of pages in the document
         PDPageTree pages = document.getPages();
@@ -45,8 +48,10 @@ public class RotationController {
             page.setRotation(page.getRotation() + angle);
         }
 
-        return WebResponseUtils.pdfDocToWebResponse(document, pdfFile.getOriginalFilename().replaceFirst("[.][^.]+$", "") + "_rotated.pdf");
-
+        return WebResponseUtils.pdfDocToWebResponse(
+                document,
+                Filenames.toSimpleFileName(pdfFile.getOriginalFilename())
+                                .replaceFirst("[.][^.]+$", "")
+                        + "_rotated.pdf");
     }
-
 }

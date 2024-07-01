@@ -1,5 +1,5 @@
 # Intermediate stage for running dos2unix
-FROM alpine:3.14 AS dos2unix-converter
+FROM alpine:3.20 AS dos2unix-converter
 
 # Install dos2unix
 RUN apk add --no-cache dos2unix
@@ -13,7 +13,7 @@ RUN dos2unix /dos2unix-scripts/*
 
 
 # Build stage
-FROM alpine:3.14 AS downloader
+FROM alpine:3.20 AS downloader
 
 # Install necessary utilities
 RUN apk add --no-cache curl jq 
